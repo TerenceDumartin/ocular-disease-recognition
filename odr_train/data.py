@@ -6,31 +6,26 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from google.cloud import storage
 import numpy as np
+from pathlib import Path
 
-BUCKET_NAME = "lwg-ocular-disease-recognition"
+BUCKET_NAME = "ocular-disease-recognition"
+DATA_FOLDER = "data/Train_test_split/"
 
 def get_data(local):
-    if local :
-        #csv to DataFrame
-        df_train = get_df_local('X_train.csv', nrows = 1) #for testing
-        df_test = get_df_local('X_test.csv', nrows = 1) #for testing
-        
-        #images to X
-        X_train = get_images_local(df_train, 'Train')
-        X_test = get_images_local(df_test, 'Test')
-        
-    else :
-        #csv to DataFrame
-        df_train = get_df_using_blob('X_train.csv')
-        df_test = get_df_using_blob('X_test.csv')
-        
-        # #images to X
-        # X_train = get_images_using_blob(df_train, 'Train')
-        # X_test = get_images_using_blob(df_test, 'Test')
-        X_train=0
-        X_test=0
-    return df_train, df_test, X_train, X_test
+    if not local :
+        #chack if files already downloaded in cloud
+        if not os.path.exists(DATA_FOLDER+'X_test.csv'):
+            download_blob()
 
+    #csv to DataFrame
+    df_train = get_df_local('X_train.csv') #for testing
+    df_test = get_df_local('X_test.csv') #for testing
+    
+    #images to X
+    X_train = get_images_local(df_train, 'Train')
+    X_test = get_images_local(df_test, 'Test')
+
+    return df_train, df_test, X_train, X_test
 #------------------------------------------------
 #     LOCAL IMPORT
 #------------------------------------------------
@@ -39,56 +34,39 @@ def get_images_local(df, folder):
     print(f'loading images {folder}')
     img_data = []
 
-    path = f"data/Train_test_split/{folder}/"
+    path = f"{DATA_FOLDER}/{folder}/"
     for file in df.filename:
         img_data.append(imageio.imread(path + file))
     return np.array(img_data)
 
-def get_df_local(data_file, nrows):
+def get_df_local(data_file):
     
     # load n lines from my csv
     print(f'loading df {data_file}')
-    path = "data/Train_test_split/" + data_file
-    df = pd.read_csv(path, nrows = nrows)
+    path = DATA_FOLDER + data_file
+    df = pd.read_csv(path)
     return df
 
 #------------------------------------------------
 #     GLOB IMPORT
 #------------------------------------------------
 
-def get_df_using_blob(data_file):
-
-    print(f'loading df {data_file}')
-    # get data from my google storage bucket
-    BUCKET_TRAIN_DATA_PATH = "data/Train_test_split/" + data_file
-
-    client = storage.Client()  # verifies $GOOGLE_APPLICATION_CREDENTIALS
-    bucket = client.bucket(BUCKET_NAME)
-    blob = bucket.blob(BUCKET_TRAIN_DATA_PATH)
-
-    blob.download_to_filename(data_file)
-
-    # load downloaded data to dataframe
-    df = pd.read_csv(data_file)
-
-    return df
-
-def get_images_using_blob(df, folder):
-    print(f'loading images {folder}')
+def download_blob():
     
+    print(f'DOWNLOADING FROM STORAGE ')
+    prefix = 'data/Train_test_split/'
     client = storage.Client()
+    bucket = client.bucket(BUCKET_NAME)
+    blobs = bucket.list_blobs(prefix=prefix)  # Get list of files
 
-    img_data = []
-    for filename in df.filename:
-        BUCKET_TRAIN_DATA_PATH = "data/Train_test_split/" + folder +'/' + filename
-        bucket = client.bucket(BUCKET_NAME)
-        blob = bucket.blob(BUCKET_TRAIN_DATA_PATH)
-        blob.download_to_filename(filename)
-        img_data.append(imageio.imread(filename))
+    for blob in blobs:
+        if blob.name.endswith("/"):
+            continue
+        file_split = blob.name.split("/")
+        directory = "/".join(file_split[0:-1])
+        Path(directory).mkdir(parents=True, exist_ok=True)
+        blob.download_to_filename( blob.name)
     
-    return np.array(img_data)
-
-
 def save_model_to_gcp(joblib_name):
 
     storage_location = f"models/{joblib_name}"
@@ -99,3 +77,12 @@ def save_model_to_gcp(joblib_name):
     blob = bucket.blob(storage_location)
     blob.upload_from_filename(local_model_filename)
 
+def save_image_to_gcp(fig_name):
+
+    storage_location = f"models/{fig_name}"
+    local_model_filename = DATA_FOLDER + '/' + fig_name
+
+    client = storage.Client()
+    bucket = client.bucket(BUCKET_NAME)
+    blob = bucket.blob(storage_location)
+    blob.upload_from_filename(local_model_filename)
