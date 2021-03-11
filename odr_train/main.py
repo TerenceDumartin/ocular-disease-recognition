@@ -121,7 +121,7 @@ class Trainer(MLFlowBase):
         self.evaluate_model()
         
         #---rename our run
-        self.name = self.name + '_' + self.target + '_' + self.accuracy
+        self.name = self.name + '_' + self.target + '_' + str(int(self.accuracy))
         
         # step 5 : save training loss accuracy
         self.save_fig()
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     param_set = [
             dict(
                 local           = False,  #for taking data in local or in gcp
-                epochs          = 100,
+                epochs          = 50,
                 save_model      = True, #for saving the model
                 target          = 'C',   # choosing y 
                 resize          = False, #add resizing in pipeline
@@ -150,7 +150,7 @@ if __name__ == '__main__':
             ),
             dict(
                 local           = False,  #for taking data in local or in gcp
-                epochs          = 100,
+                epochs          = 50,
                 save_model      = True, #for saving the model
                 target          = 'N',   # choosing y 
                 resize          = False, #add resizing in pipeline
