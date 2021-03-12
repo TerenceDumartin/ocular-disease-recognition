@@ -19,10 +19,10 @@ def get_data(local, mode, target_v0, target_v1):
     #csv to DataFrame
     df_train = get_df_local('X_train.csv') #for testing
     df_test = get_df_local('X_test.csv') #for testing
-    
+    print(mode)
     if mode == 'v0':
         y_train = df_train[target_v0]
-        y_test  = df_train[target_v0]
+        y_test  = df_test[target_v0]
     else:
         #Remove normal observation + create y classifier
         df_train = df_train[df_train.N==0]
