@@ -11,7 +11,9 @@ REGION=europe-west1
 
 PYTHON_VERSION=3.7
 FRAMEWORK=scikit-learn
-RUNTIME_VERSION=1.15
+RUNTIME_VERSION=2.4
+MACHINE_TYPE=n1-standard-8
+
 install:
 	@pip install -e .
 
@@ -23,6 +25,8 @@ gcp_submit_training:
 		--job-dir gs://${BUCKET_NAME}/${BUCKET_TRAINING_FOLDER} \
 		--package-path ${PACKAGE_NAME} \
 		--module-name ${PACKAGE_NAME}.${FILENAME} \
+		--scale-tier custom \
+		--master-machine-type ${MACHINE_TYPE} \
 		--python-version=${PYTHON_VERSION} \
 		--runtime-version=${RUNTIME_VERSION} \
 		--region ${REGION} \

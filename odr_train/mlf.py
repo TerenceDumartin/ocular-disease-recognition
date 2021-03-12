@@ -8,7 +8,6 @@ class MLFlowBase():
 
     def __init__(self, experiment_name, MLFLOW_URI):
         self.experiment_name = experiment_name
-        print(self.experiment_name + '*'*50)
         self.MLFLOW_URI = MLFLOW_URI
 
     @memoized_property
