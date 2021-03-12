@@ -56,10 +56,23 @@ class Trainer(MLFlowBase):
         # push metrics to mlflow
         self.mlflow_log_metric(self.score_name, self.score)
 
+    def create_model(self):
+        in_shape = self.X_train[0].shape
+        if self.mode == 'v0':
+            if self.vgg16:
+                self.model = get_model_vgg16(in_shape)
+            else:
+                self.model = get_model_binary()
+        else:
+            out_shape = len(self.y_train.columns)
+            if self.vgg16:
+                self.model = get_model_classifier_vgg16(in_shape, out_shape)
+            else:
+                self.model = get_model_classifier(out_shape)
+                
     def evaluate_model(self):
 
-        # make prediction for metrics
-        
+        # Use history to fetch validation score on last epoch
         self.score_name =list(self.history.history.keys())[1]
         self.val_score_name =list(self.history.history.keys())[-1]
         self.score = round(self.history.history[self.val_score_name][-1]*100,2)
@@ -116,18 +129,7 @@ class Trainer(MLFlowBase):
         self.retrieve_data()
 
         # step 2 : create model
-        in_shape = self.X_train[0].shape
-        if self.mode == 'v0':
-            if self.vgg16:
-                self.model = get_model_vgg16(in_shape)
-            else:
-                self.model = get_model_binary()
-        else:
-            out_shape = len(self.y_train.columns)
-            if self.vgg16:
-                self.model = get_model_classifier_vgg16(in_shape, out_shape)
-            else:
-                self.model = get_model_classifier(out_shape)
+        self.create_model()
 
         # step 3 : train
         self.fit_model()
@@ -136,7 +138,6 @@ class Trainer(MLFlowBase):
         self.evaluate_model()
         
         #---rename our run
-
         self.name = f"{self.name}_{self.mode}_{self.tarstr}_{int(self.score)}"
         
         # step 5 : save training loss score
@@ -150,7 +151,7 @@ class Trainer(MLFlowBase):
         if self.mlflow:
             self.mlflow_log_run()
 
-        print('Finito cappuccino!')
+        print(f'End of {self.name}!')
 
 
 if __name__ == '__main__':
@@ -162,14 +163,14 @@ if __name__ == '__main__':
                 #Model Params
                 mode            = 'v0', #('v0' = predict N or C on all df , 'v1' = desease classifier on desease df)
                 target_v0       = 'N',   # choosing y (if mode = all) ex : 'C'
-                epochs          = 2,
+                epochs          = 10,
                 vgg16           = True, #Transfert learning
                 
                 #Options
-                local           = True,  #for taking data in local or in gcp
-                save_model      = False,  #for saving the model
+                local           = False,  #for taking data in local or in gcp
+                save_model      = True,  #for saving the model
                 resize          = False,  #add resizing in pipeline (useless for now)
-                mlflow          = False,  #export results in MLFlow
+                mlflow          = True,  #export results in MLFlow
                 
             ),
             dict(
@@ -178,17 +179,15 @@ if __name__ == '__main__':
 
                 #Model Params
                 mode            = 'v1', #('v0' = predict N or C on all df , 'v1' = desease classifier on desease df)
-                target_v0       = 'N',   # choosing y (if mode = all) ex : 'C'
                 target_v1       = ['D','G','C','A','H','M','O'], #deseases to classify (if mode = deseases) ex :['D','G','C','A','H','M','O']
-                epochs          = 2,
+                epochs          = 10,
                 vgg16           = True, #Transfert learning
                 
                 #Options
-                local           = True,  #for taking data in local or in gcp
-                save_model      = False,  #for saving the model
+                local           = False,  #for taking data in local or in gcp
+                save_model      = True,  #for saving the model
                 resize          = False,  #add resizing in pipeline (useless for now)
-                mlflow          = False,  #export results in MLFlow
-                
+                mlflow          = True,  #export results in MLFlow
             ),
             dict(
                 #Basics infos
@@ -196,21 +195,52 @@ if __name__ == '__main__':
 
                 #Model Params
                 mode            = 'v1', #('v0' = predict N or C on all df , 'v1' = desease classifier on desease df)
-                target_v0       = 'N',   # choosing y (if mode = all) ex : 'C'
                 target_v1       = ['G','C','A','H','M','O'], #deseases to classify (if mode = deseases) ex :['D','G','C','A','H','M','O']
-                epochs          = 2,
+                epochs          = 10,
                 vgg16           = True, #Transfert learning
                 
                 #Options
-                local           = True,  #for taking data in local or in gcp
-                save_model      = False,  #for saving the model
+                local           = False,  #for taking data in local or in gcp
+                save_model      = True,  #for saving the model
                 resize          = False,  #add resizing in pipeline (useless for now)
-                mlflow          = False,  #export results in MLFlow
+                mlflow          = True,  #export results in MLFlow
             ),
+            dict(
+                #Basics infos
+                name            =  "baseline_vgg",
 
+                #Model Params
+                mode            = 'v1', #('v0' = predict N or C on all df , 'v1' = desease classifier on desease df)
+                target_v1       = ['D','C','A','H','M','O'], #deseases to classify (if mode = deseases) ex :['D','G','C','A','H','M','O']
+                epochs          = 10,
+                vgg16           = True, #Transfert learning
+                
+                #Options
+                local           = False,  #for taking data in local or in gcp
+                save_model      = True,  #for saving the model
+                resize          = False,  #add resizing in pipeline (useless for now)
+                mlflow          = True,  #export results in MLFlow
+            ),
+            dict(
+                #Basics infos
+                name            =  "baseline_vgg",
+
+                #Model Params
+                mode            = 'v1', #('v0' = predict N or C on all df , 'v1' = desease classifier on desease df)
+                target_v1       = ['D', 'G', 'C','H','M','O'], #deseases to classify (if mode = deseases) ex :['D','G','C','A','H','M','O']
+                epochs          = 10,
+                vgg16           = True, #Transfert learning
+                
+                #Options
+                local           = False,  #for taking data in local or in gcp
+                save_model      = True,  #for saving the model
+                resize          = False,  #add resizing in pipeline (useless for now)
+                mlflow          = True,  #export results in MLFlow
+            ),
     ]
     
     for params in param_set : 
 
         trainer = Trainer(**params)
         trainer.train()
+    print('Finito cappuccino!')

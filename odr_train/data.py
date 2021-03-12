@@ -59,7 +59,7 @@ def get_df_local(data_file):
     # load n lines from my csv
     print(f'loading df {data_file}')
     path = DATA_FOLDER + data_file
-    df = pd.read_csv(path, nrows=10) #for debugging
+    df = pd.read_csv(path)#, nrows=10) #for debugging
     return df
 
 #------------------------------------------------
