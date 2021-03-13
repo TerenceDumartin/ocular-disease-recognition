@@ -21,6 +21,7 @@ class Trainer(MLFlowBase):
         
         #Model Params
         self.mode = kwargs.get("mode", "v0")
+        
         self.target_v0 = kwargs.get("target_v0", 'N')
         self.target_v1 = kwargs.get("target_v1", ['D','G','C','A','H','M','O'])
         self.epochs = kwargs.get("epochs", 10)
