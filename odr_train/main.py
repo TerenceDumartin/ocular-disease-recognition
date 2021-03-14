@@ -31,7 +31,8 @@ class Trainer(MLFlowBase):
         self.epochs = kwargs.get("epochs", 10)
         self.vgg16 = kwargs.get("vgg16", False)
         self.datagen = kwargs.get('datagen', False)
-        
+        self.remove_col = kwargs.get('remove_col', [])
+
         if self.mode == 'v1':
             self.tarstr = ''.join(self.target_v1)
         else:
@@ -48,7 +49,7 @@ class Trainer(MLFlowBase):
 
         # get data
         self.y_train, self.y_test, self.X_train, self.X_test = \
-            get_data(self.local, self.mode, self.target_v0, self.target_v1)
+            get_data(self.local, self.mode, self.target_v0, self.target_v1, self.remove_col)
         
         if self.normalize:
             self.X_train = self.X_train/255
@@ -68,17 +69,19 @@ class Trainer(MLFlowBase):
 
     def create_model(self):
         in_shape = self.X_train[0].shape
-        if self.mode == 'v0':
-            if self.vgg16:
-                self.model = get_model_vgg16(in_shape)
-            else:
-                self.model = get_model_binary()
+        out_shape = len(self.y_train.columns)
+        
+        # if self.mode == 'v0':
+        #     if self.vgg16:
+        #         self.model = get_model_vgg16(in_shape)
+        #     else:
+        #         self.model = get_model_binary()
+        # else:
+        
+        if self.vgg16:
+            self.model = get_model_classifier_vgg16(in_shape, out_shape)
         else:
-            out_shape = len(self.y_train.columns)
-            if self.vgg16:
-                self.model = get_model_classifier_vgg16(in_shape, out_shape)
-            else:
-                self.model = get_model_classifier(out_shape)
+            self.model = get_model_classifier(out_shape)
                 
     def evaluate_model(self):
 
@@ -116,14 +119,14 @@ class Trainer(MLFlowBase):
         y_pred = self.model.predict(self.X_test)
 
 
-        if self.mode == 'v0':
-            classe = ['O' , self.target_v0]
-            argmax_pred = np.round(y_pred).astype(int)
-            argmax_test = self.y_test
-        else :
-            argmax_pred = np.argmax(y_pred, axis=1)
-            argmax_test = np.array(self.y_test.apply(lambda x : np.argmax(x), axis = 1))
-            classe = list(self.y_test.columns)
+        # if self.mode == 'v0':
+        #     classe = ['O' , self.target_v0]
+        #     argmax_pred = y_pred
+        #     argmax_test = self.y_test
+        # else :
+        argmax_pred = np.argmax(y_pred, axis=1)
+        argmax_test = np.array(self.y_test.apply(lambda x : np.argmax(x), axis = 1))
+        classe = list(self.y_test.columns)
         
         f = plot_confusion_matrix(argmax_test, argmax_pred, classes=classe)
         
@@ -193,32 +196,50 @@ class Trainer(MLFlowBase):
         
         # step 5 : save training loss score
         self.save_fig()
-        
         self.save_confusion_matrix()
         
         # step 6 : save the trained model
         if self.save_model :
             self.savemodel()
         
-        # step 7 : log run in mlflow
-        if self.mlflow:
-            self.mlflow_log_run()
+        # # step 7 : log run in mlflow
+        # if self.mlflow:
+        #     self.mlflow_log_run()
 
         print(f'End of {self.name}!')
 
 
 if __name__ == '__main__':
     param_set = [
+            # dict(
+            #     #Basics infos
+            #     name            =  "vlundi",
+            #     remove_col      = ['D'],
+                
+            #     #Model Params
+            #     mode            = 'v0', #('v0' = predict N or C on all df , 'v1' = desease classifier on desease df)
+            #     target_v0       = 'N', #deseases to classify (if mode = deseases) ex :['D','G','C','A','H','M','O']
+            #     epochs          = 10,
+            #     vgg16           = True, #Transfert learning
+            #     datagen         = True,
+                
+            #     #Options
+            #     local           = False,  #for taking data in local or in gcp
+            #     save_model      = True,  #for saving the model
+            #     normalize       = True,  #add resizing in pipeline (useless for now)
+            #     mlflow          = False,  #export results in MLFlow
+            # ),
             dict(
                 #Basics infos
-                name            =  "v0_check",
-
+                name            =  "vlundi",
+                remove_col      = ['D'],
+                
                 #Model Params
-                mode            = 'v0', #('v0' = predict N or C on all df , 'v1' = desease classifier on desease df)
-                target_v0       = 'N', #deseases to classify (if mode = deseases) ex :['D','G','C','A','H','M','O']
-                epochs          = 5,
+                mode            = 'v1', #('v0' = predict N or C on all df , 'v1' = desease classifier on desease df)
+                target_v1       = ['G','C','A','H','M','O'], #deseases to classify (if mode = deseases) ex :['D','G','C','A','H','M','O']
+                epochs          = 10,
                 vgg16           = True, #Transfert learning
-                datagen         = True, 
+                datagen         = True,
                 
                 #Options
                 local           = False,  #for taking data in local or in gcp
@@ -226,40 +247,6 @@ if __name__ == '__main__':
                 normalize       = True,  #add resizing in pipeline (useless for now)
                 mlflow          = False,  #export results in MLFlow
             ),
-            # dict(
-            #     #Basics infos
-            #     name            =  "datagen",
-
-            #     #Model Params
-            #     mode            = 'v1', #('v0' = predict N or C on all df , 'v1' = desease classifier on desease df)
-            #     target_v1       = ['D','G','C','A','H','M','O'], #deseases to classify (if mode = deseases) ex :['D','G','C','A','H','M','O']
-            #     epochs          = 10,
-            #     vgg16           = True, #Transfert learning
-            #     datagen         = True,
-                
-            #     #Options
-            #     local           = False,  #for taking data in local or in gcp
-            #     save_model      = False,  #for saving the model
-            #     normalize       = True,  #add resizing in pipeline (useless for now)
-            #     mlflow          = False,  #export results in MLFlow
-            # ),
-            # dict(
-            #     #Basics infos
-            #     name            =  "datagen",
-
-            #     #Model Params
-            #     mode            = 'v1', #('v0' = predict N or C on all df , 'v1' = desease classifier on desease df)
-            #     target_v1       = ['G','C','A','H','M','O'], #deseases to classify (if mode = deseases) ex :['D','G','C','A','H','M','O']
-            #     epochs          = 10,
-            #     vgg16           = True, #Transfert learning
-            #     datagen         = True,
-                
-            #     #Options
-            #     local           = False,  #for taking data in local or in gcp
-            #     save_model      = False,  #for saving the model
-            #     normalize       = True,  #add resizing in pipeline (useless for now)
-            #     mlflow          = False,  #export results in MLFlow
-            # ),
     ]
     
     for params in param_set : 

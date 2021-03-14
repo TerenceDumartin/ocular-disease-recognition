@@ -10,7 +10,7 @@ from pathlib import Path
 BUCKET_NAME = "ocular-disease-recognition"
 DATA_FOLDER = "data/Train_test_split/"
 
-def get_data(local, mode, target_v0, target_v1):
+def get_data(local, mode, target_v0, target_v1, remove_col):
     if not local :
         #chack if files already downloaded in cloud
         if not os.path.exists(DATA_FOLDER+'X_test.csv'):
@@ -19,10 +19,36 @@ def get_data(local, mode, target_v0, target_v1):
     #csv to DataFrame
     df_train = get_df_local('X_train.csv') #for testing
     df_test = get_df_local('X_test.csv') #for testing
-    print(mode)
+    
+    #Balancing
     if mode == 'v0':
-        y_train = df_train[target_v0]
-        y_test  = df_test[target_v0]
+        print(len(df_train))
+        df_train = balance(df_train, target_v0)
+        df_test = balance(df_test, target_v0)
+        print(df_train[target_v0].sum())
+    else:
+        df_train = balance(df_train, target_v1)
+        df_test = balance(df_test, target_v1)
+        print(df_test[target_v1].sum())
+    
+    if remove_col:
+        #getting ride of one ore more categorie for all training
+        for feat in remove_col:
+            df_test = df_test[df_test[feat]==0]
+            df_train = df_train[df_train[feat]==0]
+            
+    if mode == 'v0':
+        # y_train = df_train[target_v0]
+        # y_test  = df_test[target_v0]
+
+        y_train = pd.DataFrame(df_train[target_v0].copy())
+        y_train['O'] = 0
+        y_train.loc[y_train.sum(axis=1) == 0,'O'] = 1
+
+        y_test = pd.DataFrame(df_test[target_v0].copy())
+        y_test['O'] = 0
+        y_test.loc[y_test.sum(axis=1) == 0,'O'] = 1
+        
     else:
         #Remove normal observation + create y classifier
         df_train = df_train[df_train.N==0]
@@ -35,12 +61,34 @@ def get_data(local, mode, target_v0, target_v1):
         y_test['O'] = 0
         y_test.loc[y_test.sum(axis=1) == 0,'O'] = 1
 
+
     #images to X
     X_train = get_images_local(df_train, 'Train')
     X_test = get_images_local(df_test, 'Test')
-
+    
     return y_train, y_test, X_train, X_test
 
+def balance(df, feats):
+    
+    # feats = ['G','C','A','H','M','O']
+    len_feat=df[feats].sum()
+    max_len = max(len_feat)
+    
+    dfs_to_add =[]
+    for i,feat in enumerate(feats):
+        len_i = len_feat[i]
+        lines_to_add = max_len-len_i
+
+        
+        temp_dfs_to_add=[]
+        if len_i != 0:
+            for j in range(int(lines_to_add/len_i +1)):
+                temp_dfs_to_add.append(df[df[feat]==1])
+            dfs_to_add.append(pd.concat(temp_dfs_to_add, axis = 0)[:lines_to_add])
+
+    df_to_add = pd.concat(dfs_to_add, axis = 0)
+    
+    return pd.concat([df,df_to_add], axis = 0)
 #------------------------------------------------
 #     LOCAL IMPORT
 #------------------------------------------------
