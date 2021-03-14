@@ -113,7 +113,6 @@ def load_model_vgg16(in_shape):
 #---------------------------------------------------
 
 def compile_model(model):
-
     model.compile(loss='binary_crossentropy',
                   optimizer='adam',
                   metrics=['accuracy'])
