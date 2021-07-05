@@ -8,8 +8,8 @@ To carry out this project, we used a **dataset of 6,000 patients comprising 12,0
 
 ### Test our AI
 You can test our AI here -> https://od-recognition.herokuapp.com/ <br>
-You can find below some image to test it !<br>
-**Can you find what kind of disease the eyes below have before using our AI ?** <br><br>
+And can find below some image to test it !<br>
+**But before using our AI, can you find what kind of disease the eyes below have ?** <br><br>
 <img src="https://www.tdumartin.com/img/A-Eye_not_fundus.jpg" width="100" height="100">
 <img src="https://www.tdumartin.com/img/A-Eye_N.jpg" width="100" height="100">
 <img src="https://www.tdumartin.com/img/A-Eye_M.jpg" width="100" height="100">
